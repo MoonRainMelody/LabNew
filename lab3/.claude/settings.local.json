@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker exec redis-master:*)",
+      "Bash(docker exec:*)",
+      "Bash(curl:*)",
+      "Bash(docker stop redis-master:*)",
+      "Bash(docker pause redis-master:*)",
+      "Bash(docker unpause redis-master:*)"
+    ]
+  }
+}

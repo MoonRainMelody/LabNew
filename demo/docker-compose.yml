@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # 1. 配置 MySQL 数据库服务
+  db:
+    image: mysql:8.0
+    container_name: mysql-server
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: gamedb  # 容器启动时自动创建这个库
+    ports:
+      - "3306:3306"
+
+  # 2. 配置我们的 Spring Boot 服务
+  app:
+    build: .  # 告诉 Compose 自动去当前目录找 Dockerfile 打包镜像
+    container_name: spring-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      # 这里就是替换 application.properties 里 ${DB_HOST} 的地方！
+      - DB_HOST=db
+    depends_on:
+      - db      # 确保 MySQL 先启动，应用再启动

@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mysql-master:
+    image: mysql:8.0
+    container_name: practice2-master
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: practice_db
+      MYSQL_USER: repl
+      MYSQL_PASSWORD: repl123
+    ports:
+      - "3306:3306"
+    volumes:
+      - master-data:/var/lib/mysql
+      - ./init-master.sql:/docker-entrypoint-initdb.d/init-master.sql
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=ROW --gtid-mode=ON --enforce-gtid-consistency=ON
+    networks:
+      - mysql-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mysql-slave:
+    image: mysql:8.0
+    container_name: practice2-slave
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: practice_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - slave-data:/var/lib/mysql
+      - ./init-slave.sql:/docker-entrypoint-initdb.d/init-slave.sql
+    command: --server-id=2 --relay-log=relay-bin --log-bin=mysql-bin --binlog-format=ROW --gtid-mode=ON --enforce-gtid-consistency=ON --read-only=1
+    networks:
+      - mysql-network
+    depends_on:
+      mysql-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  mysql-network:
+    driver: bridge
+
+volumes:
+  master-data:
+  slave-data:

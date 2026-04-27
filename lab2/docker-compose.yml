@@ -1,0 +1,150 @@
+version: '3.8'
+
+services:
+  # ==================== 存储层 ====================
+  ds_master:
+    image: mysql:8.0
+    container_name: ds_master
+    command: >
+      --server-id=1
+      --log-bin=mysql-bin
+      --binlog-format=ROW
+      --binlog-do-db=user_db
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: user_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker/mysql/master/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - sharding_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ds_slave_0:
+    image: mysql:8.0
+    container_name: ds_slave_0
+    command: >
+      --server-id=2
+      --relay-log=relay-bin
+      --read-only=1
+      --replicate-do-db=user_db
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./docker/mysql/slave0/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - sharding_net
+    depends_on:
+      ds_master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ds_slave_1:
+    image: mysql:8.0
+    container_name: ds_slave_1
+    command: >
+      --server-id=3
+      --relay-log=relay-bin
+      --read-only=1
+      --replicate-do-db=user_db
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./docker/mysql/slave1/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - sharding_net
+    depends_on:
+      ds_master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ==================== 代理层 ====================
+  sharding-proxy:
+    image: apache/shardingsphere-proxy:5.5.1
+    container_name: sharding-proxy
+    environment:
+      PORT: 3317
+    ports:
+      - "3317:3317"
+    volumes:
+      - ./docker/sharding-proxy/conf:/opt/shardingsphere-proxy/conf
+      - ./docker/sharding-proxy/ext-lib:/opt/shardingsphere-proxy/ext-lib
+    networks:
+      - sharding_net
+    depends_on:
+      ds_master:
+        condition: service_healthy
+      ds_slave_0:
+        condition: service_healthy
+      ds_slave_1:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/3317'"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  # ==================== 应用层 ====================
+  spring-app-1:
+    build: .
+    container_name: spring-app-1
+    networks:
+      - sharding_net
+    depends_on:
+      sharding-proxy:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://sharding-proxy:3317/logic_db?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+
+  spring-app-2:
+    build: .
+    container_name: spring-app-2
+    networks:
+      - sharding_net
+    depends_on:
+      sharding-proxy:
+        condition: service_healthy
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://sharding-proxy:3317/logic_db?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+
+  # ==================== 负载均衡层 ====================
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-lb
+    ports:
+      - "80:80"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - sharding_net
+    depends_on:
+      - spring-app-1
+      - spring-app-2
+
+networks:
+  sharding_net:
+    driver: bridge

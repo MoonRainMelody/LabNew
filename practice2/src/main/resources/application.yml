@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: practice2
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/practice_db?useSSL=false&serverTimezone=Asia/Shanghai&characterEncoding=utf8
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQLDialect
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        type:
+          DescriptorSql: DEBUG

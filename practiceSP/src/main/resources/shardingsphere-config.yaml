@@ -1,0 +1,41 @@
+mode:
+  type: Standalone
+  repository:
+    type: JDBC
+
+dataSources:
+  master:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    jdbcUrl: jdbc:mysql://localhost:3306/practice_db?useSSL=false&serverTimezone=UTC
+    username: root
+    password: root123
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 5
+
+  slave:
+    dataSourceClassName: com.zaxxer.hikari.HikariDataSource
+    driverClassName: com.mysql.cj.jdbc.Driver
+    jdbcUrl: jdbc:mysql://localhost:3307/practice_db?useSSL=false&serverTimezone=UTC
+    username: root
+    password: root123
+    connectionTimeoutMilliseconds: 30000
+    idleTimeoutMilliseconds: 60000
+    maxLifetimeMilliseconds: 1800000
+    maxPoolSize: 50
+    minPoolSize: 5
+
+rules:
+- !READWRITE_SPLITTING
+  dataSources:
+    readwrite_ds:
+      staticStrategy:
+        writeDataSourceName: master
+        readDataSourceNames:
+          - slave
+
+props:
+  sql-show: true

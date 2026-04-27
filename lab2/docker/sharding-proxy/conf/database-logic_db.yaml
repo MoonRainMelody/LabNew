@@ -1,0 +1,42 @@
+databaseName: logic_db
+
+dataSources:
+  ds_master:
+    url: jdbc:mysql://ds_master:3306/user_db?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: password
+  ds_slave_0:
+    url: jdbc:mysql://ds_slave_0:3306/user_db?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: password
+  ds_slave_1:
+    url: jdbc:mysql://ds_slave_1:3306/user_db?serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: password
+
+rules:
+  - !READWRITE_SPLITTING
+    dataSourceGroups:
+      rw_ds:
+        writeDataSourceName: ds_master
+        readDataSourceNames:
+          - ds_slave_0
+          - ds_slave_1
+        loadBalancerName: round_robin
+    loadBalancers:
+      round_robin:
+        type: ROUND_ROBIN
+
+  - !SHARDING
+    tables:
+      t_user:
+        actualDataNodes: rw_ds.t_user_${0..1}
+        tableStrategy:
+          standard:
+            shardingColumn: user_id
+            shardingAlgorithmName: t_user_inline
+    shardingAlgorithms:
+      t_user_inline:
+        type: INLINE
+        props:
+          algorithm-expression: t_user_${user_id % 2}

@@ -1,0 +1,107 @@
+version: '3.8'
+
+networks:
+  redis-net:
+    driver: bridge
+
+volumes:
+  redis-master-data:
+  redis-slave1-data:
+  redis-slave2-data:
+
+services:
+  # --- Redis 层 ---
+  redis-master:
+    image: redis:7.0
+    container_name: redis-master
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - ./redis/master/conf/redis.conf:/etc/redis/redis.conf
+      - redis-master-data:/data
+    networks:
+      - redis-net
+    ports:
+      - "6379:6379"
+
+  redis-slave1:
+    image: redis:7.0
+    container_name: redis-slave1
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - ./redis/slave1/conf/redis.conf:/etc/redis/redis.conf
+      - redis-slave1-data:/data
+    networks:
+      - redis-net
+    ports:
+      - "6380:6379"
+    depends_on:
+      - redis-master
+
+  redis-slave2:
+    image: redis:7.0
+    container_name: redis-slave2
+    command: redis-server /etc/redis/redis.conf
+    volumes:
+      - ./redis/slave2/conf/redis.conf:/etc/redis/redis.conf
+      - redis-slave2-data:/data
+    networks:
+      - redis-net
+    ports:
+      - "6381:6379"
+    depends_on:
+      - redis-master
+
+  # --- Sentinel 层 ---
+  sentinel1:
+    image: redis:7.0
+    container_name: redis-sentinel1
+    command: >
+      sh -c "cp /conf/sentinel.conf /tmp/sentinel.conf &&
+      chmod 777 /tmp/sentinel.conf &&
+      redis-sentinel /tmp/sentinel.conf"
+    volumes:
+      - ./sentinel/sentinel1/conf/sentinel.conf:/conf/sentinel.conf
+    networks:
+      - redis-net
+    ports:
+      - "26379:26379"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+
+  sentinel2:
+    image: redis:7.0
+    container_name: redis-sentinel2
+    command: >
+      sh -c "cp /conf/sentinel.conf /tmp/sentinel.conf &&
+      chmod 777 /tmp/sentinel.conf &&
+      redis-sentinel /tmp/sentinel.conf"
+    volumes:
+      - ./sentinel/sentinel2/conf/sentinel.conf:/conf/sentinel.conf
+    networks:
+      - redis-net
+    ports:
+      - "26380:26379"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2
+
+  sentinel3:
+    image: redis:7.0
+    container_name: redis-sentinel3
+    command: >
+      sh -c "cp /conf/sentinel.conf /tmp/sentinel.conf &&
+      chmod 777 /tmp/sentinel.conf &&
+      redis-sentinel /tmp/sentinel.conf"
+    volumes:
+      - ./sentinel/sentinel3/conf/sentinel.conf:/conf/sentinel.conf
+    networks:
+      - redis-net
+    ports:
+      - "26381:26379"
+    depends_on:
+      - redis-master
+      - redis-slave1
+      - redis-slave2

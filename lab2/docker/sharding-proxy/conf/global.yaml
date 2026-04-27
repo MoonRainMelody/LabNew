@@ -1,0 +1,10 @@
+rules:
+  - !AUTHORITY
+    users:
+      - user: root@%
+        password: root
+    privilege:
+      type: ALL_PRIVILEGES_PERMITTED
+
+props:
+  sql-show: true

@@ -1,0 +1,21 @@
+CREATE DATABASE IF NOT EXISTS user_db;
+USE user_db;
+
+CREATE TABLE IF NOT EXISTS t_user_0 (
+    user_id BIGINT NOT NULL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    email VARCHAR(128),
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS t_user_1 (
+    user_id BIGINT NOT NULL PRIMARY KEY,
+    username VARCHAR(64) NOT NULL,
+    email VARCHAR(128),
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 创建复制账号
+CREATE USER IF NOT EXISTS 'repl'@'%' IDENTIFIED WITH mysql_native_password BY 'repl_password';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;

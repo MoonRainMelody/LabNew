@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: practiceSP
+
+  # 配置 ShardingSphere 数据源
+  datasource:
+    driver-class-name: org.apache.shardingsphere.driver.ShardingSphereDriver
+    url: jdbc:shardingsphere:classpath:shardingsphere-config.yaml
+
+  # JPA 配置
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    show-sql: true
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+
+# 服务端口
+server:
+  port: 8080
+
+# 日志配置
+logging:
+  level:
+    org.apache.shardingsphere: DEBUG
